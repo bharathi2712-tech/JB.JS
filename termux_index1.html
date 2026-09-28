@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced YouTube Downloader</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; color: white; margin-bottom: 40px; }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        header p { font-size: 1.1em; opacity: 0.9; }
+        .card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em; }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus { outline: none; border-color: #667eea; }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 600px) { .input-row { grid-template-columns: 1fr; } }
+        .format-select { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .format-btn { padding: 12px 20px; border: 2px solid #e0e0e0; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; text-align: center; }
+        .format-btn:hover { border-color: #667eea; }
+        .format-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        .quality-section { display: none; }
+        .quality-section.active { display: block; }
+        .quality-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        @media (max-width: 600px) { .quality-grid { grid-template-columns: repeat(2, 1fr); } }
+        .quality-btn { padding: 10px; border: 2px solid #e0e0e0; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .quality-btn:hover { border-color: #667eea; }
+        .quality-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        button.download-start { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1.1em; font-weight: 600; cursor: pointer; margin-top: 20px; }
+        button.download-start:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        button.download-start:disabled { opacity: 0.5; cursor: not-allowed; }
+        .progress-section { display: none; margin-top: 30px; }
+        .progress-section.active { display: block; }
+        .progress-bar-container { background: #e0e0e0; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 15px; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 0%; transition: width 0.3s; }
+        .progress-info { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 0.9em; color: #666; }
+        @media (max-width: 600px) { .progress-info { grid-template-columns: 1fr; } }
+        .progress-info div { padding: 12px; background: #f5f5f5; border-radius: 6px; border-left: 4px solid #667eea; }
+        .progress-info strong { display: block; color: #333; margin-bottom: 5px; }
+        .status-message { padding: 15px; border-radius: 8px; margin-bottom: 15px; font-weight: 500; display: none; }
+        .status-message.active { display: block; }
+        .status-message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-message.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .files-section h2 { margin-bottom: 20px; color: #333; font-size: 1.5em; }
+        .file-list { display: grid; gap: 10px; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea; }
+        .file-info { flex: 1; }
+        .file-name { font-weight: 600; color: #333; word-break: break-word; margin-bottom: 5px; }
+        .file-meta { font-size: 0.85em; color: #999; }
+        .file-actions { display: flex; gap: 10px; }
+        .file-actions button { padding: 8px 15px; font-size: 0.9em; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .delete-btn { background: #ff6b6b; color: white; }
+        .delete-btn:hover { box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); }
+        .download-btn { background: #51cf66; color: white; }
+        .download-btn:hover { box-shadow: 0 5px 15px rgba(81, 207, 102, 0.4); }
+        .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+        .helper-text { font-size: 0.85em; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎥 Advanced YouTube Downloader</h1>
+            <p>Download videos with quality & size control</p>
+        </header>
+
+        <div class="card">
+            <div class="form-group">
+                <label for="urlInput">📍 YouTube URL</label>
+                <input type="text" id="urlInput" placeholder="Paste YouTube link here (e.g., https://www.youtube.com/watch?v=...)">
+            </div>
+
+            <div class="form-group">
+                <label>📂 Format</label>
+                <div class="format-select">
+                    <button class="format-btn active" data-format="mp4">📹 MP4 (Video)</button>
+                    <button class="format-btn" data-format="mp3">🎵 MP3 (Audio)</button>
+                </div>
+            </div>
+
+            <div class="quality-section active">
+                <div class="form-group">
+                    <label>🎬 Video Quality (MP4 only)</label>
+                    <div class="quality-grid">
+                        <button class="quality-btn active" data-quality="best">Best Quality</button>
+                        <button class="quality-btn" data-quality="1080">1080p (Full HD)</button>
+                        <button class="quality-btn" data-quality="720">720p (HD)</button>
+                        <button class="quality-btn" data-quality="480">480p (Mobile)</button>
+                    </div>
+                    <div class="helper-text">Higher quality = larger file size</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="maxFilesize">💾 Max File Size Limit (MB)</label>
+                <input type="number" id="maxFilesize" placeholder="Leave empty for no limit (e.g., 100, 500, 1000)">
+                <div class="helper-text">Optional: Stops download if file exceeds this size</div>
+            </div>
+
+            <button class="download-start" id="downloadBtn" onclick="startDownload()">⬇️ START DOWNLOAD</button>
+
+            <div id="statusMessage" class="status-message"></div>
+
+            <div id="progressSection" class="progress-section">
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <div class="progress-info">
+                    <div><strong>Progress</strong> <span id="progressPercent">0%</span></div>
+                    <div><strong>Speed</strong> <span id="progressSpeed">--</span></div>
+                    <div><strong>Time Left</strong> <span id="progressEta">--</span></div>
+                    <div><strong>File</strong> <span id="progressFile">--</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card files-section">
+            <h2>📂 Downloaded Files</h2>
+            <div id="filesList" class="file-list">
+                <div class="empty-state">No files downloaded yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFormat = 'mp4';
+        let selectedQuality = 'best';
+        let currentVideoId = null;
+        let progressCheckInterval = null;
+
+        // Format selection
+        document.querySelectorAll('.format-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedFormat = this.dataset.format;
+                
+                // Show/hide quality section for MP4
+                const qualitySection = document.querySelector('.quality-section');
+                if (selectedFormat === 'mp4') {
+                    qualitySection.classList.add('active');
+                } else {
+                    qualitySection.classList.remove('active');
+                }
+            });
+        });
+
+        // Quality selection
+        document.querySelectorAll('.quality-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedQuality = this.dataset.quality;
+            });
+        });
+
+        // Enter key to download
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') startDownload();
+        });
+
+        function startDownload() {
+            const url = document.getElementById('urlInput').value.trim();
+            const maxFilesize = document.getElementById('maxFilesize').value;
+            
+            if (!url) {
+                showStatus('❌ Please enter a YouTube URL', 'error');
+                return;
+            }
+            
+            if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+                showStatus('❌ Please enter a valid YouTube URL', 'error');
+                return;
+            }
+
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '⏳ Downloading...';
+
+            fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: url,
+                    format: selectedFormat,
+                    quality: selectedFormat === 'mp4' ? selectedQuality : null,
+                    maxFilesize: maxFilesize || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showStatus(`❌ Error: ${data.error}`, 'error');
+                    downloadBtn.disabled = false;
+                    downloadBtn.innerHTML = '⬇️ START DOWNLOAD';
+                    return;
+                }
+
+                currentVideoId = data.video_id;
+                document.getElementById('progressSection').classList.add('active');
+                showStatus(`ℹ️ Download started... Fetching ${selectedFormat.toUpperCase()} (${selectedQuality})`, 'info');
+                
+                checkProgress();
+                progressCheckInterval = setInterval(checkProgress, 500);
+            })
+            .catch(error => {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = '⬇️ START DOWNLOAD';
+            });
+        }
+
+        function checkProgress() {
+            if (!currentVideoId) return;
+
+            fetch(`/api/progress/${currentVideoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        clearInterval(progressCheckInterval);
+                        return;
+                    }
+
+                    if (data.status === 'downloading') {
+                        const percent = parseFloat(data.percent);
+                        document.getElementById('progressBar').style.width = percent + '%';
+                        document.getElementById('progressPercent').textContent = data.percent;
+                        document.getElementById('progressSpeed').textContent = data.speed;
+                        document.getElementById('progressEta').textContent = data.eta;
+                        document.getElementById('progressFile').textContent = data.filename.split('/').pop().substring(0, 40);
+                    }
+                    else if (data.status === 'completed' || data.status === 'finished') {
+                        document.getElementById('progressBar').style.width = '100%';
+                        document.getElementById('progressPercent').textContent = '100%';
+                        showStatus('✅ Download completed successfully!', 'success');
+                        
+                        setTimeout(() => {
+                            clearInterval(progressCheckInterval);
+                            const downloadBtn = document.getElementById('downloadBtn');
+                            downloadBtn.disabled = false;
+                            downloadBtn.innerHTML = '⬇️ START DOWNLOAD';
+                            document.getElementById('urlInput').value = '';
+                            document.getElementById('maxFilesize').value = '';
+                            document.getElementById('progressSection').classList.remove('active');
+                            loadFiles();
+                        }, 2000);
+                    }
+                    else if (data.status === 'error') {
+                        clearInterval(progressCheckInterval);
+                        showStatus(`❌ Error: ${data.error}`, 'error');
+                        const downloadBtn = document.getElementById('downloadBtn');
+                        downloadBtn.disabled = false;
+                        downloadBtn.innerHTML = '⬇️ START DOWNLOAD';
+                    }
+                })
+                .catch(error => console.error('Progress check error:', error));
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = `status-message active ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        function loadFiles() {
+            fetch('/api/files')
+                .then(response => response.json())
+                .then(files => {
+                    const filesList = document.getElementById('filesList');
+                    
+                    if (files.length === 0) {
+                        filesList.innerHTML = '<div class="empty-state">No files downloaded yet</div>';
+                        return;
+                    }
+
+                    filesList.innerHTML = files.map(file => `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-name">${escapeHtml(file.name)}</div>
+                                <div class="file-meta">${file.size} • ${file.date}</div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="download-btn" onclick="downloadFile('${escapeHtml(file.name)}')">⬇️ Save</button>
+                                <button class="delete-btn" onclick="deleteFile('${escapeHtml(file.name)}')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => console.error('Error loading files:', error));
+        }
+
+        function downloadFile(filename) {
+            window.location.href = `/api/download-file/${encodeURIComponent(filename)}`;
+        }
+
+        function deleteFile(filename) {
+            if (!confirm(`Delete "${filename}"?`)) return;
+
+            fetch(`/api/delete/${encodeURIComponent(filename)}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showStatus(`❌ Error: ${data.error}`, 'error');
+                    } else {
+                        showStatus('✅ File deleted', 'success');
+                        loadFiles();
+                    }
+                })
+                .catch(error => showStatus(`❌ Error: ${error.message}`, 'error'));
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load files on startup
+        loadFiles();
+    </script>
+</body>
+</html>
